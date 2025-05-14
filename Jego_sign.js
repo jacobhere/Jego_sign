@@ -1,9 +1,8 @@
 /*
 无忧行签到脚本
 */
-
 const $ = new Env('无忧行');
-const token = '589f351f45e9491282c0a54c75a54d76';
+const token = process.env.JEGO_TOKEN;
 $.secretKey = 'online_jego_h5';
 $.secretVal = '93EFE107DDE6DE51';
 const currentTimestamp = Date.now()*1000+765; // 使用标准毫秒时间戳
@@ -48,6 +47,7 @@ const signature = generateSign(queryParams);
 
     //await queryRedDot();
     //await expireRewardQuery();
+  let signInFailed = false; // Initialize failure flag
     await querySign();
     //await querySpecialTask();
     //await queryEveryDataTask();
@@ -75,6 +75,7 @@ const alreadySignedTodayEntry = $.signs.find(signInfo => signInfo.isSign === 3);
     console.log(`今天已签到 (找到今天的签到的记录, Day ${alreadySignedTodayEntry.completeNumber})`);
     // Use the rewardCoin from the entry marked as signed today
     $.desc = `签到失败：今日已签到‼️ 无忧币 +${alreadySignedTodayEntry.rewardCoin}`;
+    signInFailed = true;
  } else {
         const targetSignInEntry = $.signs.slice().reverse().find(signInfo => signInfo.isSign === 2);
         if (targetSignInEntry) {
@@ -93,30 +94,25 @@ const alreadySignedTodayEntry = $.signs.find(signInfo => signInfo.isSign === 3);
             if ($.sign_result.code == 0) {
                 // Sign-in successful
                 let rewardDetails = `无忧币 +${rewardCoin}`;
-                if ($.sign && $.sign.rewardType && $.sign.rewardType != '') {
-                     try {
-                        let extraRewardStr = reslutionExtraReward($.sign);
-                        rewardDetails = `${extraRewardStr}, ${rewardDetails}`;
-                     } catch (e) {
-                        console.error("处理额外奖励时出错:", e);
-                     }
-                }
                  $.desc = `签到成功：已连签${completeNumber}天，${rewardDetails}🎉`;
 
             } else {
                 // Sign-in failed according to API response
                 const errorMsg = $.sign_result.message || '请稍后重试';
                 $.desc = `签到失败：${errorMsg} (Code: ${$.sign_result.code})`;
+                signInFailed = true;
             }
         } else {
              console.error('签到失败：$.sign_result 或 $.sign_result.code 未定义');
              $.desc = `签到失败：无法获取签到结果`;
+             signInFailed = true;
         }
 
     } else {
         // No entry with isSign: 3 and no entry with isSign: 2 found.
         console.log('未找到可签到的项 (isSign === 2 not found)');
         $.desc = `签到失败：未找到可签到的日期`;
+        signInFailed = true;
     }
  }
 
@@ -125,6 +121,10 @@ const alreadySignedTodayEntry = $.signs.find(signInfo => signInfo.isSign === 3);
   let total = $.expireRewardQuery.tripcoins;
   $.desc += `\n无忧币总计：${total}💰\n${$.expireRewardQuery.rewardTip}\n${$.expireRewardQuery.tripcoinsTip}`;
   $.msg($.name, '', $.desc);
+  if(signInFailed) {
+    console.log("签到失败，发送通知...");
+    QLAPI.systemNotify({title:$.name, content:$.desc});
+  }
 })()
   .catch((e) => $.logErr(e))
   .finally(() => $.done());
