@@ -14,3 +14,15 @@ https://app3.jegotrip.com.cn/api/service/v1/mission/sign/querySign?token=
 然后script就可以脱机运行了，注意手机端的无忧行不可以退出登陆，每次登陆后token会变化，需要重新抓包
 
 在青龙面板测试通过。
+
+青龙面板需要安装两个依赖。
+打开青龙面板 → 依赖管理 → 选择 Node.js。
+
+分别添加这两个依赖（建议固定版本，避免 ESM 兼容性问题）：
+
+got@11.8.6
+
+tough-cookie@4.1.3
+
+安装完成后，重新运行脚本。
+
